@@ -1,0 +1,29 @@
+# =====================================================================
+#  Configuración para desplegar el backend en Render.
+#  Render leerá este archivo al conectar tu repo.
+#  Las variables secretas (DB, JWT) las pones en el panel de Render,
+#  NO aquí (por eso están con sync: false).
+# =====================================================================
+services:
+  - type: web
+    name: stockit-backend
+    runtime: node
+    plan: free
+    rootDir: backend          # el backend vive en esta subcarpeta del repo
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: JWT_SECRET
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_SSL
+        value: "true"
