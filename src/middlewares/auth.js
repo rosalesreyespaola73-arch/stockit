@@ -26,8 +26,4 @@ export const soloRoles = (...roles) => (req, res, next) => {
     return res.status(403).json({ message: 'No tienes permiso para esta acción' });
   }
   next();
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> 4dba0833a82215b8ce174a5ed6dc0e0146dede61

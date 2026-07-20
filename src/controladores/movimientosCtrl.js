@@ -22,7 +22,7 @@ export const getMovimientos = async (req, res) => {
 export const getMisPrestamos = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      `SELECT m.*, p.prod_nombre, a.act_numero_serie, a.act_marca, a.act_modelo, a.act_estado
+      `SELECT m.*, p.prod_nombre, p.prod_imagen, a.act_numero_serie, a.act_marca, a.act_modelo, a.act_estado, a.act_foto
        FROM movimientos m
        LEFT JOIN productos p ON m.prod_id = p.prod_id
        LEFT JOIN activos_individuales a ON m.act_id = a.act_id
