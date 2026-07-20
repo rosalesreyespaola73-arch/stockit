@@ -1,11 +1,12 @@
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
+import { rutaArchivo } from '../middlewares/upload.js';
 
-// GET /api/usuarios  -> lista todos (sin la contraseña)
+// GET /api/usuarios  -> lista todos (sin la contraseña, con su foto)
 export const getUsuarios = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      'SELECT usu_id, usu_nombre, usu_correo, usu_rol, usu_qr, usu_activo, created_at FROM usuarios'
+      'SELECT usu_id, usu_nombre, usu_correo, usu_rol, usu_qr, usu_foto, usu_activo, created_at FROM usuarios'
     );
     res.json(rows);
   } catch (error) {
@@ -13,45 +14,38 @@ export const getUsuarios = async (req, res) => {
   }
 };
 
-// GET /api/usuarios/qr/:codigo  -> busca por su código QR (ej: TECNICO-5)
-// Lo usa la pantalla de ESCANEO en la bodega.
+// GET /api/usuarios/qr/:codigo  -> busca por su codigo QR (ej: TECNICO-5)
 export const getUsuarioPorQR = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      'SELECT usu_id, usu_nombre, usu_correo, usu_rol, usu_qr FROM usuarios WHERE usu_qr = ?',
+      'SELECT usu_id, usu_nombre, usu_correo, usu_rol, usu_qr, usu_foto FROM usuarios WHERE usu_qr = ?',
       [req.params.codigo]
     );
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Técnico no encontrado' });
-    }
+    if (rows.length === 0) return res.status(404).json({ message: 'Tecnico no encontrado' });
     res.json(rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// POST /api/usuarios  -> crea usuario con contraseña encriptada
+// POST /api/usuarios  -> crea usuario (con foto opcional)
 export const postUsuario = async (req, res) => {
   const { nombre, correo, password, rol } = req.body;
 
   if (!nombre || !correo || !password) {
-    return res.status(400).json({ message: 'Nombre, correo y contraseña son obligatorios' });
+    return res.status(400).json({ message: 'Nombre, correo y contrasena son obligatorios' });
   }
 
   try {
-    const [existe] = await db.execute(
-      'SELECT usu_id FROM usuarios WHERE usu_correo = ?',
-      [correo]
-    );
-    if (existe.length > 0) {
-      return res.status(400).json({ message: 'El correo ya está registrado' });
-    }
+    const [existe] = await db.execute('SELECT usu_id FROM usuarios WHERE usu_correo = ?', [correo]);
+    if (existe.length > 0) return res.status(400).json({ message: 'El correo ya esta registrado' });
 
     const hash = await bcrypt.hash(password, 10);
+    const usu_foto = rutaArchivo(req.file);
 
     const [result] = await db.execute(
-      'INSERT INTO usuarios (usu_nombre, usu_correo, usu_password, usu_rol) VALUES (?, ?, ?, ?)',
-      [nombre, correo, hash, rol || 'tecnico']
+      'INSERT INTO usuarios (usu_nombre, usu_correo, usu_password, usu_rol, usu_foto) VALUES (?, ?, ?, ?, ?)',
+      [nombre, correo, hash, rol || 'tecnico', usu_foto]
     );
 
     // El QR se arma con el rol y el id: ej TECNICO-5
@@ -64,20 +58,31 @@ export const postUsuario = async (req, res) => {
   }
 };
 
-// PUT /api/usuarios/:id  -> actualiza datos (y contraseña si la envían)
+// PUT /api/usuarios/:id  -> actualiza datos (foto y contrasena opcionales)
 export const putUsuario = async (req, res) => {
   const { nombre, correo, rol, password, activo } = req.body;
   try {
-    let query, params;
+    // Si suben foto nueva la usamos; si no, mantenemos la actual
+    let usu_foto = null;
+    if (req.file) {
+      usu_foto = rutaArchivo(req.file);
+    } else {
+      const [act] = await db.execute('SELECT usu_foto FROM usuarios WHERE usu_id = ?', [req.params.id]);
+      usu_foto = act[0]?.usu_foto || null;
+    }
+
     if (password) {
       const hash = await bcrypt.hash(password, 10);
-      query = 'UPDATE usuarios SET usu_nombre=?, usu_correo=?, usu_rol=?, usu_password=?, usu_activo=? WHERE usu_id=?';
-      params = [nombre, correo, rol, hash, activo ?? 1, req.params.id];
+      await db.execute(
+        'UPDATE usuarios SET usu_nombre=?, usu_correo=?, usu_rol=?, usu_password=?, usu_foto=?, usu_activo=? WHERE usu_id=?',
+        [nombre, correo, rol, hash, usu_foto, activo ?? 1, req.params.id]
+      );
     } else {
-      query = 'UPDATE usuarios SET usu_nombre=?, usu_correo=?, usu_rol=?, usu_activo=? WHERE usu_id=?';
-      params = [nombre, correo, rol, activo ?? 1, req.params.id];
+      await db.execute(
+        'UPDATE usuarios SET usu_nombre=?, usu_correo=?, usu_rol=?, usu_foto=?, usu_activo=? WHERE usu_id=?',
+        [nombre, correo, rol, usu_foto, activo ?? 1, req.params.id]
+      );
     }
-    await db.execute(query, params);
     res.json({ message: 'Usuario actualizado' });
   } catch (error) {
     res.status(500).json({ error: error.message });

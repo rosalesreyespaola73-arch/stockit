@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMovimientos, postMovimiento, getMisPrestamos } from '../controladores/movimientosCtrl.js';
+import { getMovimientos, postMovimiento, getMisPrestamos, getPrestamosPendientes } from '../controladores/movimientosCtrl.js';
 import { verificarToken } from '../middlewares/auth.js';
 
 const router = Router();
@@ -7,6 +7,8 @@ const router = Router();
 router.get('/movimientos', verificarToken, getMovimientos);
 // Herramientas que tiene el técnico logueado (app del empleado)
 router.get('/mis-prestamos', verificarToken, getMisPrestamos);
+// Lo que sigue prestado (pantalla de Devolución en bodega)
+router.get('/prestamos-pendientes', verificarToken, getPrestamosPendientes);
 // El encargado registra la salida/entrada (con firma del técnico)
 router.post('/movimientos', verificarToken, soloRolesEncargado, postMovimiento);
 

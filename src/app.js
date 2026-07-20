@@ -10,6 +10,7 @@ import productosRouter from './routers/productos.routers.js';
 import activosRouter from './routers/activos.routers.js';
 import movimientosRouter from './routers/movimientos.routers.js';
 import dashboardRouter from './routers/dashboard.routers.js';
+import solicitudesRouter from './routers/solicitudes.routers.js';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -52,6 +53,7 @@ app.use('/api', activosRouter);
 app.use('/api', movimientosRouter);
 app.use('/api', dashboardRouter);
 app.use('/api', bodegaRouter);
+app.use('/api', solicitudesRouter);
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Endpoint no encontrado' });
